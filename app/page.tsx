@@ -12,6 +12,7 @@ import Image from "next/image"
 import Link from "next/link"
 import BookingForm from '../components/BookingForm'
 import { supabase } from '../lib/supabaseClient'
+import React, { useEffect, useState } from 'react';
 
 export default function RozersBarberStation() {
   return (
@@ -59,6 +60,8 @@ export default function RozersBarberStation() {
             <Image
               src="/images/rozers-logo.jpg"
               alt="Rozer's Barber Station Logo"
+              width={64}
+              height={64}
               className="rounded-full aspect-square object-cover w-16 h-16 md:w-36 md:h-36"
             />
             <h1 className="text-2xl font-bold">Rozer's Barber Station</h1>
@@ -101,6 +104,8 @@ export default function RozersBarberStation() {
               <Image
                 src="/images/rozers-logo.jpg"
                 alt="Rozer's Barber Station Logo"
+                width={128}
+                height={128}
                 className="mx-auto rounded-full aspect-square object-cover bg-white p-2 shadow-2xl w-32 h-32 md:w-72 md:h-72"
               />
             </div>
@@ -266,6 +271,8 @@ export default function RozersBarberStation() {
               <Image
                 src="/images/rozers-logo.jpg"
                 alt="Rozer's Barber Station Logo"
+                width={96}
+                height={96}
                 className="rounded-full aspect-square object-cover shadow-2xl w-24 h-24 md:w-72 md:h-72"
               />
             </div>
@@ -359,75 +366,8 @@ export default function RozersBarberStation() {
         <div className="container mx-auto px-4 md:px-8">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold mb-4">What Our Customers Say</h2>
-            <p className="text-gray-600">Recent 5-star reviews from satisfied customers</p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg">Mike Johnson</CardTitle>
-                    <CardDescription>2 days ago</CardDescription>
-                  </div>
-                  <div className="flex">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    ))}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">
-                  "Excellent service! Rozer gave me the best haircut I've had in years. Professional, clean, and great
-                  attention to detail. Highly recommend!"
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg">David Smith</CardTitle>
-                    <CardDescription>1 week ago</CardDescription>
-                  </div>
-                  <div className="flex">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    ))}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">
-                  "Amazing experience! The hot towel shave was incredible and the atmosphere is so welcoming. Will
-                  definitely be coming back regularly."
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg">Carlos Rodriguez</CardTitle>
-                    <CardDescription>1 week ago</CardDescription>
-                  </div>
-                  <div className="flex">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    ))}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">
-                  "Top-notch service and skill. Rozer understood exactly what I wanted and delivered perfectly. Clean
-                  shop, fair prices, great conversation."
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          <GoogleReviews />
         </div>
       </section>
 
@@ -436,13 +376,13 @@ export default function RozersBarberStation() {
         <div className="container mx-auto px-4 md:px-8">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold mb-4">Visit Us</h2>
-            <p className="text-gray-600">Find us at our convenient location</p>
+            <p className="text-gray-600">Get a fresh cut, shave, or beard trim at Rozer's Barber Station!</p>
           </div>
           <div className="grid lg:grid-cols-2 gap-12">
             {/* Google Maps */}
             <div className="h-96 rounded-lg overflow-hidden shadow-lg">
               <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2879.8!2d-79.7624!3d43.7315!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x882b15eaa5d05abf%3A0x352d5b8f5c5b5c5b!2s50%20Sunny%20Meadow%20Blvd%2C%20Brampton%2C%20ON!5e0!3m2!1sen!2sca!4v1234567890"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2879.8!2d-79.7624!3d43.7315!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x882b15eaa5d05abf%3A0x352d5b8f5c5b5c5b!2s50%20Sunny%20Meadow%20Blvd%2C%20Brampton%2C%20ON!5e0!3m2!1sen!2sca!4v1234567890&maptype=satellite"
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
@@ -471,6 +411,8 @@ export default function RozersBarberStation() {
                   <Image
                     src="/images/rozers-logo.jpg"
                     alt="Rozer's Barber Station Logo"
+                    width={48}
+                    height={48}
                     className="rounded-full aspect-square object-cover w-12 h-12 md:w-20 md:h-20"
                   />
                 </div>
@@ -508,6 +450,8 @@ export default function RozersBarberStation() {
               <Image
                 src="/images/rozers-logo.jpg"
                 alt="Rozer's Barber Station Logo"
+                width={32}
+                height={32}
                 className="rounded-full aspect-square object-cover w-8 h-8 md:w-8 md:h-8"
               />
               <span className="text-xl font-bold">Rozer's Barber Station</span>
@@ -521,4 +465,43 @@ export default function RozersBarberStation() {
       </footer>
     </div>
   )
+}
+
+function GoogleReviews() {
+  const [reviews, setReviews] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('/api/google-reviews')
+      .then(res => res.json())
+      .then(setReviews);
+  }, []);
+
+  if (!reviews.length) return <p>Loading reviews...</p>;
+
+  // Remove date display
+  return (
+    <div className="overflow-x-auto">
+      <div className="flex gap-6 min-w-full">
+        {reviews.slice(0, 10).map((review, idx) => (
+          <Card key={idx} className="min-w-[320px] max-w-xs flex-shrink-0">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg">{review.author_name}</CardTitle>
+                </div>
+                <div className="flex">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                  ))}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600">"{review.text}"</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
 }

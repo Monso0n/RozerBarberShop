@@ -2,8 +2,91 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import bcrypt from 'bcryptjs';
+import { addDays, startOfWeek, format, isSameDay, parseISO } from 'date-fns';
 
 const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+// Add prop types for BarberScheduleCalendar
+interface BarberScheduleCalendarProps {
+  barber: any;
+  schedules: any[];
+  bookings: any[];
+  weekStart: Date;
+  onPrevWeek: () => void;
+  onNextWeek: () => void;
+}
+
+function BarberScheduleCalendar({ barber, schedules, bookings, weekStart, onPrevWeek, onNextWeek }: BarberScheduleCalendarProps) {
+  // Build days of week
+  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  // Time slots (8am to 8pm)
+  const hours = Array.from({ length: 13 }, (_, i) => 8 + i);
+
+  // Helper: get schedule for a day
+  const getSchedule = (day: Date) => {
+    const dow = day.getDay() === 0 ? 7 : day.getDay(); // 1=Mon, 7=Sun
+    return schedules.find((s: any) => s.employee_id === barber.id && s.day_of_week === dow);
+  };
+
+  // Helper: get bookings for a day
+  const getBookings = (day: Date) => {
+    return bookings.filter((b: any) => b.employee_id === barber.id && isSameDay(parseISO(b.date), day));
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-2">
+        <button onClick={onPrevWeek} className="px-2 py-1 bg-gray-200 rounded">&lt; Prev</button>
+        <div className="font-bold text-lg">{format(weekStart, 'MMMM d, yyyy')} - {format(addDays(weekStart, 6), 'MMMM d, yyyy')}</div>
+        <button onClick={onNextWeek} className="px-2 py-1 bg-gray-200 rounded">Next &gt;</button>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full border">
+          <thead>
+            <tr>
+              <th className="border px-2 py-1">Time</th>
+              {days.map((day, i) => (
+                <th key={i} className="border px-2 py-1">{format(day, 'EEE dd')}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {hours.map(hour => (
+              <tr key={hour}>
+                <td className="border px-2 py-1 text-xs">{hour}:00</td>
+                {days.map((day, i) => {
+                  const schedule = getSchedule(day);
+                  const inSchedule = schedule &&
+                    hour >= parseInt(schedule.start_time.split(':')[0]) &&
+                    hour < parseInt(schedule.end_time.split(':')[0]);
+                  const bookingsForDay = getBookings(day);
+                  const booking = bookingsForDay.find((b: any) =>
+                    hour >= parseInt(b.start_time.split(':')[0]) &&
+                    hour < parseInt(b.end_time.split(':')[0])
+                  );
+                  return (
+                    <td key={i} className="border px-1 py-1 relative" style={{ minWidth: 90 }}>
+                      {booking ? (
+                        <div className="bg-blue-400 text-white text-xs rounded px-1 py-0.5">
+                          {booking.customers?.name} <br />
+                          {booking.booking_services?.map((bs: any) => bs.services?.name).join(', ')}
+                        </div>
+                      ) : inSchedule ? (
+                        <div className="bg-green-200 text-green-900 text-xs rounded px-1 py-0.5 text-center">Working</div>
+                      ) : (
+                        <div className="bg-gray-100 text-gray-400 text-xs rounded px-1 py-0.5 text-center">Off</div>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
 
 function AdminPanel() {
   const [tab, setTab] = useState('bookings');
@@ -13,6 +96,10 @@ function AdminPanel() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [schedules, setSchedules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedBarberId, setSelectedBarberId] = useState<string | null>(null);
+  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [bookingBarberFilter, setBookingBarberFilter] = useState('');
+  const [bookingDateFilter, setBookingDateFilter] = useState('');
 
   useEffect(() => {
     setLoading(true);
@@ -81,6 +168,34 @@ function AdminPanel() {
 
       {tab === 'bookings' && !loading && (
         <div className="overflow-x-auto">
+          <div className="flex gap-4 mb-4 items-end">
+            <div>
+              <label className="block text-sm font-semibold mb-1">Barber</label>
+              <select
+                value={bookingBarberFilter}
+                onChange={e => setBookingBarberFilter(e.target.value)}
+                className="border rounded px-2 py-1"
+              >
+                <option value="">All</option>
+                {employees.map(e => (
+                  <option key={e.id} value={e.id}>{e.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-1">Date</label>
+              <input
+                type="date"
+                value={bookingDateFilter}
+                onChange={e => setBookingDateFilter(e.target.value)}
+                className="border rounded px-2 py-1"
+              />
+            </div>
+            <button
+              className="ml-2 px-3 py-1 bg-gray-200 rounded"
+              onClick={() => { setBookingBarberFilter(''); setBookingDateFilter(''); }}
+            >Clear</button>
+          </div>
           <table className="min-w-full border border-gray-200 rounded-lg shadow-sm">
             <thead className="bg-gray-100 sticky top-0 z-10">
               <tr>
@@ -94,29 +209,34 @@ function AdminPanel() {
               </tr>
             </thead>
             <tbody>
-              {bookings.map((b, idx) => (
-                <tr key={b.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                  <td className="px-4 py-2">{b.date}</td>
-                  <td className="px-4 py-2">{b.start_time} - {b.end_time}</td>
-                  <td className="px-4 py-2">{b.employees?.name}</td>
-                  <td className="px-4 py-2">
-                    <div className="font-medium">{b.customers?.name}</div>
-                    <div className="text-xs text-gray-500">{b.customers?.phone}</div>
-                    <div className="text-xs text-gray-400">{b.customers?.email}</div>
-                  </td>
-                  <td className="px-4 py-2">
-                    {b.booking_services?.map((bs: any) => (
-                      <span key={bs.services?.name} className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-1 mb-1">{bs.services?.name}</span>
-                    ))}
-                  </td>
-                  <td className="px-4 py-2 capitalize">{b.status}</td>
-                  <td className="px-4 py-2">
-                    {b.status !== 'cancelled' && (
-                      <button className="text-red-600 hover:underline" onClick={() => cancelBooking(b.id)}>Cancel</button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {bookings
+                .filter(b =>
+                  (!bookingBarberFilter || b.employees?.id === bookingBarberFilter) &&
+                  (!bookingDateFilter || b.date === bookingDateFilter)
+                )
+                .map((b, idx) => (
+                  <tr key={b.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="px-4 py-2">{b.date}</td>
+                    <td className="px-4 py-2">{b.start_time} - {b.end_time}</td>
+                    <td className="px-4 py-2">{b.employees?.name}</td>
+                    <td className="px-4 py-2">
+                      <div className="font-medium">{b.customers?.name}</div>
+                      <div className="text-xs text-gray-500">{b.customers?.phone}</div>
+                      <div className="text-xs text-gray-400">{b.customers?.email}</div>
+                    </td>
+                    <td className="px-4 py-2">
+                      {b.booking_services?.map((bs: any) => (
+                        <span key={bs.services?.name} className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-1 mb-1">{bs.services?.name}</span>
+                      ))}
+                    </td>
+                    <td className="px-4 py-2 capitalize">{b.status}</td>
+                    <td className="px-4 py-2">
+                      {b.status !== 'cancelled' && (
+                        <button className="text-red-600 hover:underline" onClick={() => cancelBooking(b.id)}>Cancel</button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
@@ -192,41 +312,31 @@ function AdminPanel() {
       )}
 
       {tab === 'schedules' && !loading && (
-        <div className="overflow-x-auto">
-          <table className="min-w-full border border-gray-200 rounded-lg shadow-sm mb-8">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="px-4 py-2 text-left">Barber</th>
-                {daysOfWeek.map((d, i) => (
-                  <th key={i} className="px-4 py-2 text-left">{d}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {employees.map(barber => (
-                <tr key={barber.id}>
-                  <td className="px-4 py-2 font-bold">{barber.name}</td>
-                  {daysOfWeek.map((_, i) => {
-                    const schedule = getScheduleForBarberDay(barber.id, i);
-                    return (
-                      <td key={i} className="px-4 py-2 align-top border">
-                        {schedule ? (
-                          <div>
-                            <div className="text-xs text-gray-500 mb-1">
-                              {schedule.start_time} - {schedule.end_time}
-                            </div>
-                            <div className="text-xs text-green-600">Working</div>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-gray-400">Off</span>
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
+        <div>
+          <div className="mb-4">
+            <label className="mr-2 font-semibold">Select Barber:</label>
+            <select
+              value={selectedBarberId || ''}
+              onChange={e => setSelectedBarberId(e.target.value)}
+              className="border rounded px-2 py-1"
+            >
+              <option value="">-- Select --</option>
+              {employees.map(e => (
+                <option key={e.id} value={e.id}>{e.name}</option>
               ))}
-            </tbody>
-          </table>
+            </select>
+          </div>
+          {selectedBarberId && (
+            <BarberScheduleCalendar
+              barber={employees.find(e => e.id === selectedBarberId)}
+              schedules={schedules}
+              bookings={bookings}
+              weekStart={weekStart}
+              onPrevWeek={() => setWeekStart(addDays(weekStart, -7))}
+              onNextWeek={() => setWeekStart(addDays(weekStart, 7))}
+            />
+          )}
+          {!selectedBarberId && <div className="text-gray-500">Please select a barber to view their schedule.</div>}
         </div>
       )}
     </div>

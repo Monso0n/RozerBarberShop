@@ -1,6 +1,10 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Star } from "lucide-react";
+
+type GoogleReview = { author_name: string; time: number; text: string; rating: number; };
 
 export default function BookingForm() {
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -18,6 +22,7 @@ export default function BookingForm() {
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [reviews, setReviews] = useState<GoogleReview[]>([]);
 
   // Fetch employees and services
   useEffect(() => {
@@ -235,5 +240,44 @@ export default function BookingForm() {
       </button>
       <button type="submit" className="btn btn-primary w-full">Book Appointment</button>
     </form>
+  );
+}
+
+function GoogleReviews() {
+  const [reviews, setReviews] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('/api/google-reviews')
+      .then(res => res.json())
+      .then(setReviews);
+  }, []);
+
+  if (!reviews.length) return <p>Loading reviews...</p>;
+
+  return (
+    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {reviews.map((review, idx) => (
+        <Card key={idx}>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg">{review.author_name}</CardTitle>
+                <CardDescription>
+                  {new Date(review.time * 1000).toLocaleDateString()}
+                </CardDescription>
+              </div>
+              <div className="flex">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                ))}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600">"{review.text}"</p>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   );
 }

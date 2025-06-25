@@ -59,9 +59,7 @@ export default function RozersBarberStation() {
             <Image
               src="/images/rozers-logo.jpg"
               alt="Rozer's Barber Station Logo"
-              width={180}
-              height={180}
-              className="rounded-full aspect-square object-cover"
+              className="rounded-full aspect-square object-cover w-16 h-16 md:w-36 md:h-36"
             />
             <h1 className="text-2xl font-bold">Rozer's Barber Station</h1>
           </div>
@@ -103,9 +101,7 @@ export default function RozersBarberStation() {
               <Image
                 src="/images/rozers-logo.jpg"
                 alt="Rozer's Barber Station Logo"
-                width={360}
-                height={360}
-                className="mx-auto rounded-full aspect-square object-cover bg-white p-2 shadow-2xl"
+                className="mx-auto rounded-full aspect-square object-cover bg-white p-2 shadow-2xl w-32 h-32 md:w-72 md:h-72"
               />
             </div>
             <h2 className="text-4xl md:text-6xl font-bold mb-6 animate-slide-up">Premium Barbering Experience</h2>
@@ -270,9 +266,7 @@ export default function RozersBarberStation() {
               <Image
                 src="/images/rozers-logo.jpg"
                 alt="Rozer's Barber Station Logo"
-                width={300}
-                height={300}
-                className="rounded-full aspect-square object-cover shadow-2xl"
+                className="rounded-full aspect-square object-cover shadow-2xl w-24 h-24 md:w-72 md:h-72"
               />
             </div>
           </div>
@@ -477,9 +471,7 @@ export default function RozersBarberStation() {
                   <Image
                     src="/images/rozers-logo.jpg"
                     alt="Rozer's Barber Station Logo"
-                    width={80}
-                    height={80}
-                    className="rounded-full aspect-square object-cover"
+                    className="rounded-full aspect-square object-cover w-12 h-12 md:w-20 md:h-20"
                   />
                 </div>
                 <div className="flex items-center space-x-3">
@@ -516,9 +508,7 @@ export default function RozersBarberStation() {
               <Image
                 src="/images/rozers-logo.jpg"
                 alt="Rozer's Barber Station Logo"
-                width={32}
-                height={32}
-                className="rounded-full aspect-square object-cover"
+                className="rounded-full aspect-square object-cover w-8 h-8 md:w-8 md:h-8"
               />
               <span className="text-xl font-bold">Rozer's Barber Station</span>
             </div>

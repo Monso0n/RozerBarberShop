@@ -15,6 +15,12 @@ import { supabase } from '../lib/supabaseClient'
 import React, { useEffect, useState } from 'react';
 
 export default function RozersBarberStation() {
+  // Add scroll handler
+  const scrollToContact = () => {
+    const el = document.getElementById('contact');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <style jsx>{`
@@ -83,7 +89,7 @@ export default function RozersBarberStation() {
               Contact
             </Link>
           </nav>
-          <Button className="bg-red-600 hover:bg-red-700 ml-8">
+          <Button className="bg-red-600 hover:bg-red-700 ml-8" onClick={scrollToContact}>
             <Calendar className="h-4 w-4 mr-2" />
             Book Now
           </Button>
@@ -118,6 +124,7 @@ export default function RozersBarberStation() {
               <Button
                 size="lg"
                 className="bg-red-600 hover:bg-red-700 transform hover:scale-105 transition-all duration-300"
+                onClick={scrollToContact}
               >
                 <Calendar className="h-5 w-5 mr-2" />
                 Book Appointment
@@ -382,7 +389,7 @@ export default function RozersBarberStation() {
             {/* Google Maps */}
             <div className="h-96 rounded-lg overflow-hidden shadow-lg">
               <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2879.8!2d-79.7624!3d43.7315!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x882b15eaa5d05abf%3A0x352d5b8f5c5b5c5b!2s50%20Sunny%20Meadow%20Blvd%2C%20Brampton%2C%20ON!5e0!3m2!1sen!2sca!4v1234567890&maptype=satellite"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2879.8!2d-79.7624!3d43.7315!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x882b15eaa5d05abf%3A0x352d5b8f5c5b5c5b!2s50%20Sunny%20Meadow%20Blvd%2C%20Brampton%2C%20ON!5e0!3m2!1sen!2sca!4v1234567890"
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}

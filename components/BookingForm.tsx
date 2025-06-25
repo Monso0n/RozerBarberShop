@@ -7,7 +7,10 @@ import { Star } from "lucide-react";
 type GoogleReview = { author_name: string; time: number; text: string; rating: number; };
 
 export default function BookingForm() {
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const today = new Date();
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+  const tomorrowStr = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString().slice(0, 10);
   const [employees, setEmployees] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [form, setForm] = useState({
@@ -15,7 +18,7 @@ export default function BookingForm() {
     phone: '',
     email: '',
     employee_id: '',
-    service_ids: [] as string[],
+    service_quantities: {} as Record<string, number>,
     date: todayStr,
     time: '',
   });
@@ -23,6 +26,7 @@ export default function BookingForm() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [reviews, setReviews] = useState<GoogleReview[]>([]);
+  const [durationExceeded, setDurationExceeded] = useState(false);
 
   // Fetch employees and services
   useEffect(() => {
@@ -33,13 +37,20 @@ export default function BookingForm() {
   // Update available times when barber, date, or services change
   useEffect(() => {
     const fetchAvailableTimes = async () => {
-      if (!form.employee_id || !form.date || form.service_ids.length === 0) {
+      setDurationExceeded(false);
+      if (!form.employee_id || !form.date || Object.values(form.service_quantities).reduce((a, b) => a + b, 0) === 0) {
         setAvailableTimes([]);
         return;
       }
       // Get selected services' total duration
-      const selectedServices = services.filter((s: any) => form.service_ids.includes(s.id));
-      const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration_minutes, 0);
+      const selectedServices = services.filter((s: any) => (form.service_quantities[s.id] || 0) > 0);
+      const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration_minutes * (form.service_quantities[s.id] || 0), 0);
+      // If totalDuration > 60, don't show times and set error flag
+      if (totalDuration > 60) {
+        setAvailableTimes([]);
+        setDurationExceeded(true);
+        return;
+      }
 
       // Get barber's schedule for that day of week
       let dayOfWeek = new Date(form.date).getDay();
@@ -97,19 +108,17 @@ export default function BookingForm() {
     };
     fetchAvailableTimes();
     // eslint-disable-next-line
-  }, [form.employee_id, form.date, form.service_ids, services]);
+  }, [form.employee_id, form.date, form.service_quantities, services]);
 
   const handleChange = (e: any) => {
     const { name, value, type, checked } = e.target;
-    if (name === 'service_ids') {
-      setForm((prev) => {
-        let newServiceIds = checked
-          ? [...prev.service_ids, value]
-          : prev.service_ids.filter((id: string) => id !== value);
-        // Limit to max 5 services
-        if (newServiceIds.length > 5) newServiceIds = newServiceIds.slice(0, 5);
-        return { ...prev, service_ids: newServiceIds };
-      });
+    if (name.startsWith('service_qty_')) {
+      const serviceId = name.replace('service_qty_', '');
+      const qty = Math.max(0, Math.min(99, parseInt(value, 10) || 0));
+      setForm((prev) => ({
+        ...prev,
+        service_quantities: { ...prev.service_quantities, [serviceId]: qty },
+      }));
     } else {
       setForm((prev) => ({ ...prev, [name]: value }));
     }
@@ -118,7 +127,14 @@ export default function BookingForm() {
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     setError('');
-    // 1. Check/create customer
+    // 1. Calculate total duration
+    const selectedServices = services.filter((s: any) => (form.service_quantities[s.id] || 0) > 0);
+    const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration_minutes * (form.service_quantities[s.id] || 0), 0);
+    if (totalDuration > 60) {
+      setError('Max time per booking is 1 hour. Please reduce the number or duration of services.');
+      return;
+    }
+    // 2. Check/create customer
     let { data: customer } = await supabase
       .from('customers')
       .select('*')
@@ -133,9 +149,6 @@ export default function BookingForm() {
       if (custErr) return setError('Error creating customer');
       customer = newCustomer;
     }
-    // 2. Calculate total duration
-    const selectedServices = services.filter((s: any) => form.service_ids.includes(s.id));
-    const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration_minutes, 0);
     // 3. Create booking
     const startTime = form.time;
     const [h, m] = startTime.split(':').map(Number);
@@ -154,9 +167,12 @@ export default function BookingForm() {
       .select()
       .single();
     if (bookErr) return setError('Error creating booking');
-    // 4. Insert booking_services
-    for (const service_id of form.service_ids) {
-      await supabase.from('booking_services').insert([{ booking_id: booking.id, service_id }]);
+    // 4. Insert booking_services for each quantity
+    for (const s of selectedServices) {
+      const qty = form.service_quantities[s.id] || 0;
+      for (let i = 0; i < qty; i++) {
+        await supabase.from('booking_services').insert([{ booking_id: booking.id, service_id: s.id }]);
+      }
     }
     // 5. Notify n8n webhook
     try {
@@ -172,6 +188,14 @@ export default function BookingForm() {
     }
     setSuccess(true);
   };
+
+  // Filter available times for today: only allow future times
+  const filteredAvailableTimes = availableTimes.filter(t => {
+    if (form.date !== todayStr) return true;
+    const [h, m] = t.split(':').map(Number);
+    const now = new Date();
+    return h > now.getHours() || (h === now.getHours() && m > now.getMinutes());
+  });
 
   if (success) return <div className="p-4 text-green-600">Booking successful!</div>;
 
@@ -203,18 +227,20 @@ export default function BookingForm() {
         ))}
       </select>
       <div>
-        <label className="block font-semibold">Services (max 5):</label>
+        <label className="block font-semibold">Services (max time per booking is 1 hour):</label>
         {services.map((s: any) => (
-          <label key={s.id} className="block">
+          <div key={s.id} className="flex items-center gap-2 mb-1">
+            <span className="w-40">{s.name} ({s.duration_minutes} min, ${s.price})</span>
             <input
-              type="checkbox"
-              name="service_ids"
-              value={s.id}
-              checked={form.service_ids.includes(s.id)}
+              type="number"
+              name={`service_qty_${s.id}`}
+              min={0}
+              max={99}
+              value={form.service_quantities[s.id] || 0}
               onChange={handleChange}
-              disabled={!form.service_ids.includes(s.id) && form.service_ids.length >= 5}
-            /> {s.name} ({s.duration_minutes} min, ${s.price})
-          </label>
+              className="w-16 border rounded px-2 py-1"
+            />
+          </div>
         ))}
       </div>
       <input
@@ -224,14 +250,17 @@ export default function BookingForm() {
         className="input w-full"
         onChange={handleChange}
         value={form.date}
+        min={todayStr}
       />
       <select name="time" required className="input w-full" onChange={handleChange} value={form.time}>
         <option value="">Select Time</option>
-        {availableTimes.map(t => (
+        {filteredAvailableTimes.map(t => (
           <option key={t} value={t}>{t}</option>
         ))}
       </select>
-      {form.employee_id && form.date && form.service_ids.length > 0 && availableTimes.length === 0 && (
+      {durationExceeded ? (
+        <div className="text-red-600 text-sm mt-1">Max time per booking is 1 hour. Please reduce the number or duration of services.</div>
+      ) : form.employee_id && form.date && Object.values(form.service_quantities).reduce((a, b) => a + b, 0) > 0 && filteredAvailableTimes.length === 0 && (
         <div className="text-red-600 text-sm mt-1">No available times for this selection.</div>
       )}
       {/* Debug button for schedule fetch */}

@@ -25,22 +25,34 @@ export async function POST(req: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Fetch customer info
-    const { data: customer } = await supabase
+    // Fetch customer
+    const { data: customer, error: custErr } = await supabase
       .from('customers')
-      .select('name, phone')
+      .select('id, name, phone')
       .eq('id', booking.customer_id)
       .single();
+    console.log('Customer:', customer, 'Error:', custErr);
 
-    // Fetch barber info (if you want to message the barber too)
-    const { data: barber } = await supabase
+    if (!customer) {
+      return NextResponse.json({ error: 'Customer not found' }, { status: 400 });
+    }
+    if (!customer.phone) {
+      return NextResponse.json({ error: 'Customer phone missing' }, { status: 400 });
+    }
+
+    // Fetch barber
+    const { data: barber, error: barbErr } = await supabase
       .from('employees')
-      .select('name, phone')
+      .select('id, name, phone')
       .eq('id', booking.employee_id)
       .single();
+    console.log('Barber:', barber, 'Error:', barbErr);
 
-    if (!customer?.phone) {
-      return NextResponse.json({ error: 'Customer phone not found' }, { status: 400 });
+    if (!barber) {
+      return NextResponse.json({ error: 'Barber not found' }, { status: 400 });
+    }
+    if (!barber.phone) {
+      return NextResponse.json({ error: 'Barber phone missing' }, { status: 400 });
     }
 
     // Extract phone numbers and details

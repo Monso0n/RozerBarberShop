@@ -125,6 +125,21 @@ export async function GET() {
     const diffMinutes = (now.getTime() - end.getTime()) / 60000;
     console.log('Checking booking for follow-up:', booking, 'Toronto end:', end, 'Now:', now, 'Minutes since end:', diffMinutes);
     if (diffMinutes > 4) {
+      // Atomic update: set status to 'followup_in_progress' only if still 'reminder_sent'
+      const { data: updated, error: updateError } = await supabase
+        .from('bookings')
+        .update({ status: 'followup_in_progress' })
+        .eq('id', booking.id)
+        .eq('status', 'reminder_sent')
+        .select();
+      if (updateError) {
+        console.error('Error setting followup_in_progress:', updateError);
+        continue;
+      }
+      if (!updated || updated.length === 0) {
+        // Another process already handled this booking
+        continue;
+      }
       // Fetch customer info
       const { data: customer, error: customerError } = await supabase
         .from('customers')
@@ -142,10 +157,10 @@ export async function GET() {
             body: `Thank you for choosing Rozer's Barber Station, ${customer.name}! We hope you enjoyed your visit. Please leave us a review: https://search.google.com/local/writereview?placeid=ChIJmUtNDoYTK4gRybdGhIMqCQo`
           });
           console.log('Sent follow-up SMS to customer:', result);
-          // Update status
-          const { error: updateError } = await supabase.from('bookings').update({ status: 'completed' }).eq('id', booking.id);
-          if (updateError) {
-            console.error('Error updating booking status to completed:', updateError);
+          // Update status to 'completed'
+          const { error: completeError } = await supabase.from('bookings').update({ status: 'completed' }).eq('id', booking.id);
+          if (completeError) {
+            console.error('Error updating booking status to completed:', completeError);
           } else {
             console.log('Updated booking status to completed for booking:', booking.id);
           }

@@ -55,6 +55,40 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Barber phone missing' }, { status: 400 });
     }
 
+    // Fetch services for the booking
+    let services = '';
+    let serviceFetchError = null;
+    try {
+      const { data: bookingServices, error: bookingServicesError } = await supabase
+        .from('booking_services')
+        .select('service_id, services(name)')
+        .eq('booking_id', booking.id);
+      console.log('Fetched booking_services:', bookingServices, 'Error:', bookingServicesError);
+      if (bookingServicesError) serviceFetchError = bookingServicesError;
+      if (bookingServices && bookingServices.length > 0) {
+        services = bookingServices
+          .map((bs: any) => {
+            if (!bs.services) return null;
+            if (Array.isArray(bs.services)) {
+              return bs.services.map((s: any) => s.name).filter(Boolean).join(', ');
+            } else if (typeof bs.services === 'object') {
+              return bs.services.name;
+            }
+            return null;
+          })
+          .filter(Boolean)
+          .join(', ');
+      } else {
+        services = 'N/A';
+      }
+    } catch (err) {
+      serviceFetchError = err;
+      services = 'N/A';
+    }
+    if (serviceFetchError) {
+      console.error('Error fetching services for booking:', serviceFetchError);
+    }
+
     // Extract phone numbers and details
     const customerPhone = customer.phone;
     const barberPhone = barber.phone;
@@ -63,17 +97,9 @@ export async function POST(req: NextRequest) {
     const date = booking.date;
     const startTime = booking.start_time;
     const endTime = booking.end_time;
-    // Services: try to get a string list
-    let services = '';
-    if (booking.services && Array.isArray(booking.services)) {
-      services = booking.services.map((s: any) => s.name).join(', ');
-    } else if (booking.service_names) {
-      services = booking.service_names;
-    } else if (booking.services) {
-      services = booking.services;
-    }
 
     if (!customerPhone || !barberPhone || !date || !startTime) {
+      console.error('Missing required booking info', { customerPhone, barberPhone, date, startTime });
       return NextResponse.json({ error: 'Missing required booking info' }, { status: 400 });
     }
 
@@ -85,6 +111,7 @@ export async function POST(req: NextRequest) {
 
     // Send SMS
     console.log('Final phone values:', { customerPhone, barberPhone });
+    console.log('Customer SMS body:', customerMsg);
     const result = await client.messages.create({
       to: customerPhone,
       from: process.env.TWILIO_PHONE_NUMBER!,
@@ -95,6 +122,7 @@ export async function POST(req: NextRequest) {
     // (Optional) Send SMS to barber
     if (barberPhone) {
       console.log('About to send SMS to barber:', barber.phone);
+      console.log('Barber SMS body:', barberMsg);
       const resultBarber = await client.messages.create({
         to: barberPhone,
         from: process.env.TWILIO_PHONE_NUMBER!,

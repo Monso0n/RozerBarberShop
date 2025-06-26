@@ -124,7 +124,7 @@ export async function GET() {
     const end = combineDateTimeToronto(booking.date, booking.end_time);
     const diffMinutes = (now.getTime() - end.getTime()) / 60000;
     console.log('Checking booking for follow-up:', booking, 'Toronto end:', end, 'Now:', now, 'Minutes since end:', diffMinutes);
-    if (diffMinutes > 4 && diffMinutes < 6) {
+    if (diffMinutes > 4) {
       // Fetch customer info
       const { data: customer, error: customerError } = await supabase
         .from('customers')

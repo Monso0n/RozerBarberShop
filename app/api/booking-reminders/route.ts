@@ -57,42 +57,6 @@ export async function GET() {
         } catch (err) {
           console.error('Error sending reminder SMS to customer:', err);
         }
-        // (Optional) Send reminder to barber
-        if (barber?.phone) {
-          const { data: bookingServices, error: bookingServicesError } = await supabase
-            .from('booking_services')
-            .select('service_id, services(name)')
-            .eq('booking_id', booking.id);
-          console.log('Fetched booking_services for reminder:', bookingServices, 'Error:', bookingServicesError);
-
-          let serviceNames = 'N/A';
-          if (bookingServices && bookingServices.length > 0) {
-            serviceNames = bookingServices
-              .map((bs: any) => {
-                if (!bs.services) return null;
-                if (Array.isArray(bs.services)) {
-                  return bs.services.map((s: any) => s.name).filter(Boolean).join(', ');
-                } else if (typeof bs.services === 'object') {
-                  return bs.services.name;
-                }
-                return null;
-              })
-              .filter(Boolean)
-              .join(', ');
-          }
-
-          const barberMessage = `New booking: ${customer.name}\nServices: ${serviceNames}\nTime: ${booking.date} ${booking.start_time}`;
-          try {
-            const resultBarber = await twilioClient.messages.create({
-              to: barber.phone,
-              from: process.env.TWILIO_PHONE_NUMBER!,
-              body: barberMessage
-            });
-            console.log('Sent reminder SMS to barber:', resultBarber);
-          } catch (err) {
-            console.error('Error sending reminder SMS to barber:', err);
-          }
-        }
         // Update status
         const { error: updateError } = await supabase.from('bookings').update({ status: 'reminder_sent' }).eq('id', booking.id);
         if (updateError) {

@@ -14,6 +14,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
+    console.log('Webhook payload:', JSON.stringify(body));
+
     // Supabase webhook sends the new row as 'record'
     const booking = body.record || body;
 
@@ -51,6 +53,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
+    console.error('Error in send-booking-sms:', err);
     return NextResponse.json({ error: err.message || 'Failed to send SMS' }, { status: 500 });
   }
 } 

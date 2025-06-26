@@ -4,27 +4,18 @@ import twilio from 'twilio';
 
 // Helper to combine date and time into a JS Date object in Toronto time (fixed UTC-4 offset)
 function combineDateTimeToronto(date: string, time: string) {
-  // date: 'YYYY-MM-DD', time: 'HH:mm:ss'
-  // Toronto is UTC-4 for most of the year (no DST handling)
   const [year, month, day] = date.split('-').map(Number);
   const [hour, minute, second] = time.split(':').map(Number);
-  // Adjust hour for UTC-4 offset
+  // Toronto is UTC-4, so add 4 hours to get UTC
   return new Date(Date.UTC(year, month - 1, day, hour + 4, minute, second || 0));
-}
-
-// Helper to get current time in Toronto (fixed UTC-4 offset)
-function getNowToronto() {
-  const now = new Date();
-  // Subtract 4 hours to get Toronto local time if server is in UTC
-  return new Date(now.getTime() - 4 * 60 * 60 * 1000);
 }
 
 export async function GET() {
   const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
   const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!);
 
-  // Use Toronto local time for all calculations
-  const now = getNowToronto();
+  // Use UTC for all calculations
+  const now = new Date();
 
   // 1. Find bookings for reminders (1 hour before start)
   const { data: reminderBookings, error: reminderBookingsError } = await supabase

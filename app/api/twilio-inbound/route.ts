@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import MessagingResponse from 'twilio/lib/twiml/MessagingResponse';
 
+// Helper to combine date and time into a JS Date object in Toronto time (fixed UTC-4 offset)
+function combineDateTimeToronto(date: string, time: string) {
+  const [year, month, day] = date.split('-').map(Number);
+  const [hour, minute, second] = time.split(':').map(Number);
+  return new Date(Date.UTC(year, month - 1, day, hour + 4, minute, second || 0));
+}
+
 export async function POST(req: Request) {
   // Parse Twilio's x-www-form-urlencoded body
   const formData = await req.formData();
@@ -95,7 +102,7 @@ export async function POST(req: Request) {
       return new Response(resp.toString(), { headers: { 'Content-Type': 'text/xml' } });
     }
 
-    // Find all upcoming bookings more than 1 hour away
+    // Find all upcoming bookings
     const now = new Date();
     const { data: bookings, error: bookingsError } = await supabase
       .from('bookings')
@@ -105,10 +112,10 @@ export async function POST(req: Request) {
       .order('date', { ascending: true });
     console.log('CANCELBOOKING command - bookings lookup:', { bookings, bookingsError });
 
-    // Only consider bookings in the future
+    // Only consider bookings in the future (Toronto time)
     const futureBookings = (bookings || []).filter((b: any) => {
-      const bookingDate = new Date(`${b.date}T${b.start_time}`);
-      return bookingDate.getTime() > now.getTime();
+      const bookingDate = combineDateTimeToronto(b.date, b.start_time);
+      return bookingDate.getTime() > Date.now();
     });
 
     if (futureBookings.length === 0) {
@@ -119,12 +126,12 @@ export async function POST(req: Request) {
     }
 
     const toCancel = futureBookings.filter((b: any) => {
-      const bookingDate = new Date(`${b.date}T${b.start_time}`);
-      return (bookingDate.getTime() - now.getTime()) / 3600000 > 1;
+      const bookingDate = combineDateTimeToronto(b.date, b.start_time);
+      return (bookingDate.getTime() - Date.now()) / 3600000 > 1;
     });
     const tooLate = futureBookings.filter((b: any) => {
-      const bookingDate = new Date(`${b.date}T${b.start_time}`);
-      return (bookingDate.getTime() - now.getTime()) / 3600000 <= 1 && (bookingDate.getTime() - now.getTime()) > 0;
+      const bookingDate = combineDateTimeToronto(b.date, b.start_time);
+      return (bookingDate.getTime() - Date.now()) / 3600000 <= 1 && (bookingDate.getTime() - Date.now()) > 0;
     });
     console.log('CANCELBOOKING command - bookings to cancel:', toCancel);
     console.log('CANCELBOOKING command - bookings too close to cancel:', tooLate);

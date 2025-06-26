@@ -245,7 +245,7 @@ export default function BookingForm() {
     return h > now.getHours() || (h === now.getHours() && m > now.getMinutes());
   });
 
-  if (success) return <div className="p-4 text-green-600">Booking successful!</div>;
+  if (success) return <div className="p-4 text-green-600">Thank you! Your booking has been confirmed. You should receive a text shortly.</div>;
 
   // Debug function to fetch and show the schedule for the current selection
   const debugFetchSchedule = async () => {

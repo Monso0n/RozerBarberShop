@@ -2,9 +2,14 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import twilio from 'twilio';
 
-// Helper to combine date and time into a JS Date object (UTC)
-function combineDateTime(date: string, time: string) {
-  return new Date(`${date}T${time}Z`);
+// Helper to combine date and time into a JS Date object in Toronto time (fixed UTC-4 offset)
+function combineDateTimeToronto(date: string, time: string) {
+  // date: 'YYYY-MM-DD', time: 'HH:mm:ss'
+  // Toronto is UTC-4 for most of the year (no DST handling)
+  const [year, month, day] = date.split('-').map(Number);
+  const [hour, minute, second] = time.split(':').map(Number);
+  // Adjust hour for UTC-4 offset
+  return new Date(Date.UTC(year, month - 1, day, hour + 4, minute, second || 0));
 }
 
 export async function GET() {
@@ -21,9 +26,9 @@ export async function GET() {
   console.log('Reminder bookings query result:', reminderBookings, 'Error:', reminderBookingsError);
 
   for (const booking of reminderBookings || []) {
-    const start = combineDateTime(booking.date, booking.start_time);
+    const start = combineDateTimeToronto(booking.date, booking.start_time);
     const diffMinutes = (start.getTime() - now.getTime()) / 60000;
-    console.log('Checking booking for reminder:', booking, 'Minutes until start:', diffMinutes);
+    console.log('Checking booking for reminder:', booking, 'Toronto start:', start, 'Now:', now, 'Minutes until start:', diffMinutes);
     if (diffMinutes > 0 && diffMinutes < 61) {
       // Fetch customer info
       const { data: customer, error: customerError } = await supabase
@@ -108,9 +113,9 @@ export async function GET() {
   console.log('Follow-up bookings query result:', followupBookings, 'Error:', followupBookingsError);
 
   for (const booking of followupBookings || []) {
-    const end = combineDateTime(booking.date, booking.end_time);
+    const end = combineDateTimeToronto(booking.date, booking.end_time);
     const diffMinutes = (now.getTime() - end.getTime()) / 60000;
-    console.log('Checking booking for follow-up:', booking, 'Minutes since end:', diffMinutes);
+    console.log('Checking booking for follow-up:', booking, 'Toronto end:', end, 'Now:', now, 'Minutes since end:', diffMinutes);
     if (diffMinutes > 4 && diffMinutes < 6) {
       // Fetch customer info
       const { data: customer, error: customerError } = await supabase

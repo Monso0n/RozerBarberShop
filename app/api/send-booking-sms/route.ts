@@ -15,10 +15,9 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    console.log('Webhook payload:', JSON.stringify(body));
+    console.log('Webhook payload:', body);
 
-    // Supabase webhook sends the new row as 'record'
-    const booking = body.record || body;
+    const booking = body.record;
 
     // Connect to Supabase (use service role key for server-side)
     const supabase = createClient(
@@ -80,9 +79,9 @@ export async function POST(req: NextRequest) {
       await client.messages.create({ body: barberMsg, from: twilioNumber, to: barberPhone });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ ok: true });
   } catch (err: any) {
     console.error('Error in send-booking-sms:', err);
-    return NextResponse.json({ error: err.message || 'Failed to send SMS' }, { status: 500 });
+    return NextResponse.json({ error: err.message }, { status: 400 });
   }
 } 

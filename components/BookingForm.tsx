@@ -32,7 +32,10 @@ export default function BookingForm() {
 
   // Fetch employees and services
   useEffect(() => {
-    supabase.from('employees').select('*').then(({ data }) => setEmployees(data || []));
+    supabase.from('employees').select('*').then(({ data }) => {
+      setEmployees(data || []);
+      console.log('Loaded employees:', data);
+    });
     supabase.from('services').select('*').then(({ data }) => setServices(data || []));
   }, []);
 
@@ -47,7 +50,9 @@ export default function BookingForm() {
       .select('day_of_week')
       .eq('employee_id', form.employee_id)
       .then(({ data }) => {
-        setWorkingDays((data || []).map((s: any) => s.day_of_week));
+        const days = (data || []).map((s: any) => s.day_of_week);
+        console.log('Fetched workingDays for', form.employee_id, ':', days);
+        setWorkingDays(days);
       });
   }, [form.employee_id]);
 
@@ -70,9 +75,10 @@ export default function BookingForm() {
       }
 
       // Get barber's schedule for that day of week
-      let dayOfWeek = new Date(form.date).getDay();
-      // Align with admin panel: Monday=1, Sunday=7
+      let d = new Date(form.date + 'T00:00:00Z'); // force UTC
+      let dayOfWeek = d.getUTCDay();
       dayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
+      console.log('Selected date:', form.date, 'JS getDay():', new Date(form.date).getDay(), 'Mapped dayOfWeek:', dayOfWeek);
       const { data: schedule } = await supabase
         .from('employee_schedule')
         .select('*')
@@ -153,12 +159,7 @@ export default function BookingForm() {
   const handleChange = (e: any) => {
     const { name, value, type, checked } = e.target;
     if (name === 'date') {
-      const dayOfWeek = new Date(value).getDay() || 7; // 1=Mon, 7=Sun
-      if (form.employee_id && !workingDays.includes(dayOfWeek)) {
-        setError('Barber is not working on this day.');
-        setForm(prev => ({ ...prev, date: todayStr }));
-        return;
-      }
+      setError('');
     }
     if (name.startsWith('service_qty_')) {
       const serviceId = name.replace('service_qty_', '');
@@ -168,6 +169,9 @@ export default function BookingForm() {
         service_quantities: { ...prev.service_quantities, [serviceId]: qty },
       }));
     } else {
+      if (name === 'employee_id') {
+        console.log('Selected employee_id:', value);
+      }
       setForm((prev) => ({ ...prev, [name]: value }));
     }
   };
@@ -246,7 +250,8 @@ export default function BookingForm() {
 
   // Debug function to fetch and show the schedule for the current selection
   const debugFetchSchedule = async () => {
-    let dayOfWeek = new Date(form.date).getDay();
+    let d = new Date(form.date + 'T00:00:00Z'); // force UTC
+    let dayOfWeek = d.getUTCDay();
     dayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
     alert(`Barber: ${form.employee_id}, Day: ${dayOfWeek}`);
     const { data: schedule } = await supabase
@@ -263,7 +268,8 @@ export default function BookingForm() {
     const days: { value: string; label: string }[] = [];
     let d = new Date();
     for (let i = 0; days.length < count && i < 30; i++) { // up to 30 days lookahead
-      const dayOfWeek = d.getDay() === 0 ? 7 : d.getDay(); // 1=Mon, 7=Sun
+      // Correct mapping: 1=Monday, 7=Sunday
+      const dayOfWeek = d.getDay() === 0 ? 7 : d.getDay();
       if (workingDays.includes(dayOfWeek)) {
         const value = d.toISOString().slice(0, 10);
         const label = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });

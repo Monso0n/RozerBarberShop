@@ -396,7 +396,6 @@ export default function RozersBarberStation() {
               <span className="text-xl font-bold">Rozer's Barber Station</span>
             </div>
             <div className="text-center md:text-right">
-              <p>&copy; 2024 Rozer's Barber Station. All rights reserved.</p>
               <p className="text-sm text-gray-400 mt-1">Professional barbering services since 2016</p>
             </div>
           </div>

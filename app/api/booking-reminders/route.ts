@@ -76,14 +76,18 @@ export async function GET() {
         .single();
 
       if (customer?.phone) {
-        // Send follow-up SMS to customer
-        await twilioClient.messages.create({
-          to: customer.phone,
-          from: process.env.TWILIO_PHONE_NUMBER!,
-          body: `Thank you for choosing Rozer's Barber Station, ${customer.name}! We hope you enjoyed your visit. Please leave us a review: [YOUR_GOOGLE_REVIEW_LINK]`
-        });
-        // Update status
-        await supabase.from('bookings').update({ status: 'completed' }).eq('id', booking.id);
+        try {
+          // Send follow-up SMS to customer
+          await twilioClient.messages.create({
+            to: customer.phone,
+            from: process.env.TWILIO_PHONE_NUMBER!,
+            body: `Thank you for choosing Rozer's Barber Station, ${customer.name}! We hope you enjoyed your visit. Please leave us a review: [YOUR_GOOGLE_REVIEW_LINK]`
+          });
+          // Update status
+          await supabase.from('bookings').update({ status: 'completed' }).eq('id', booking.id);
+        } catch (err) {
+          console.error('Twilio error (follow-up):', err);
+        }
       }
     }
   }

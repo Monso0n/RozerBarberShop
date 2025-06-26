@@ -56,10 +56,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Extract phone numbers and details
-    const customerPhone = booking.customer_phone || booking.customer?.phone;
-    const barberPhone = booking.barber_phone || booking.barber?.phone;
-    const customerName = booking.customer_name || booking.customer?.name || 'Customer';
-    const barberName = booking.barber_name || booking.barber?.name || 'Barber';
+    const customerPhone = customer.phone;
+    const barberPhone = barber.phone;
+    const customerName = customer.name;
+    const barberName = barber.name;
     const date = booking.date;
     const startTime = booking.start_time;
     const endTime = booking.end_time;
@@ -84,14 +84,22 @@ export async function POST(req: NextRequest) {
     const barberMsg = `New booking: ${customerName}\nServices: ${services || 'N/A'}\nTime: ${date} ${startTime} - ${endTime || ''}`;
 
     // Send SMS
-    console.log('About to send SMS to customer:', customer.phone);
-    const result = await client.messages.create({ body: customerMsg, from: twilioNumber, to: customerPhone });
+    console.log('Final phone values:', { customerPhone, barberPhone });
+    const result = await client.messages.create({
+      to: customerPhone,
+      from: process.env.TWILIO_PHONE_NUMBER!,
+      body: customerMsg
+    });
     console.log('Twilio customer SMS result:', result);
 
     // (Optional) Send SMS to barber
-    if (barber?.phone) {
+    if (barberPhone) {
       console.log('About to send SMS to barber:', barber.phone);
-      const resultBarber = await client.messages.create({ body: barberMsg, from: twilioNumber, to: barberPhone });
+      const resultBarber = await client.messages.create({
+        to: barberPhone,
+        from: process.env.TWILIO_PHONE_NUMBER!,
+        body: barberMsg
+      });
       console.log('Twilio barber SMS result:', resultBarber);
     }
 

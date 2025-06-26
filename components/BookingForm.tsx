@@ -83,18 +83,28 @@ export default function BookingForm() {
       const slots: string[] = [];
       let [h, m] = schedule.start_time.split(':').map(Number);
       const [endH, endM] = schedule.end_time.split(':').map(Number);
-
-      while (h < endH || (h === endH && m + totalDuration <= endM)) {
+      // Convert schedule end time to minutes since midnight
+      const scheduleEndMinutes = endH * 60 + endM;
+      while (true) {
+        const startMinutes = h * 60 + m;
+        const endMinutes = startMinutes + totalDuration;
+        if (endMinutes > scheduleEndMinutes) break;
         const start = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
         // Calculate end time for this slot
-        let endDate = new Date(0, 0, 0, h, m + totalDuration);
+        let endDate = new Date(0, 0, 0, 0, endMinutes);
         const end = `${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`;
 
-        // Check for conflicts
-        const conflict = bookings?.some(
-          (b: any) =>
-            (start < b.end_time && end > b.start_time)
-        );
+        // Check for conflicts using minutes for accurate comparison
+        const slotStartMinutes = h * 60 + m;
+        const slotEndMinutes = slotStartMinutes + totalDuration;
+        const conflict = bookings?.some((b: any) => {
+          const [bookStartH, bookStartM] = b.start_time.split(":").map(Number);
+          const [bookEndH, bookEndM] = b.end_time.split(":").map(Number);
+          const bookStartMinutes = bookStartH * 60 + bookStartM;
+          const bookEndMinutes = bookEndH * 60 + bookEndM;
+          // Only a conflict if the slot overlaps, not if it starts exactly at the end of a booking
+          return slotStartMinutes < bookEndMinutes && slotEndMinutes > bookStartMinutes;
+        });
         if (!conflict) slots.push(start);
 
         // Increment by 15 min
@@ -105,6 +115,19 @@ export default function BookingForm() {
         }
       }
       setAvailableTimes(slots);
+
+      // In fetchAvailableTimes, after checking for schedule, fetch employee_time_off for the selected employee and date
+      const { data: timeOff } = await supabase
+        .from('employee_time_off')
+        .select('*')
+        .eq('employee_id', form.employee_id)
+        .eq('date', form.date)
+        .single();
+      if (timeOff) {
+        setAvailableTimes([]);
+        setError('Barber is off on this day.');
+        return;
+      }
     };
     fetchAvailableTimes();
     // eslint-disable-next-line
@@ -134,16 +157,25 @@ export default function BookingForm() {
       setError('Max time per booking is 1 hour. Please reduce the number or duration of services.');
       return;
     }
+    // Format phone number to E.164
+    const phoneDigits = form.phone.replace(/\D/g, '');
+    console.log('Raw input:', form.phone, 'Digits:', phoneDigits);
+    if (phoneDigits.length !== 10) {
+      setError('Please enter a valid 10-digit phone number.');
+      return;
+    }
+    let formattedPhone = '+1' + phoneDigits;
+    console.log('Formatted phone:', formattedPhone);
     // 2. Check/create customer
     let { data: customer } = await supabase
       .from('customers')
       .select('*')
-      .eq('phone', form.phone)
+      .eq('phone', formattedPhone)
       .single();
     if (!customer) {
       const { data: newCustomer, error: custErr } = await supabase
         .from('customers')
-        .insert([{ name: form.name, phone: form.phone, email: form.email }])
+        .insert([{ name: form.name, phone: formattedPhone, email: form.email }])
         .select()
         .single();
       if (custErr) return setError('Error creating customer');
@@ -173,18 +205,6 @@ export default function BookingForm() {
       for (let i = 0; i < qty; i++) {
         await supabase.from('booking_services').insert([{ booking_id: booking.id, service_id: s.id }]);
       }
-    }
-    // 5. Notify n8n webhook
-    try {
-      // TODO: Replace with your actual n8n webhook URL
-      await fetch('https://monsoon02.app.n8n.cloud/webhook/e7cb6eec-6212-49fa-8b80-8d3bc6fd0d67', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId: booking.id })
-      });
-    } catch (err) {
-      // Optionally handle webhook error
-      console.error('Failed to notify n8n webhook', err);
     }
     setSuccess(true);
   };
@@ -218,8 +238,28 @@ export default function BookingForm() {
       <h2 className="text-xl font-bold mb-2">Book an Appointment</h2>
       {error && <div className="text-red-600">{error}</div>}
       <input name="name" placeholder="Name" required className="input w-full" onChange={handleChange} />
-      <input name="phone" placeholder="Phone" required className="input w-full" onChange={handleChange} />
-      <input name="email" placeholder="Email" className="input w-full" onChange={handleChange} />
+      <input
+        id="phone"
+        name="phone"
+        type="tel"
+        placeholder="Phone Number"
+        required
+        className="input w-full"
+        value={form.phone}
+        onChange={e => {
+          const value = e.target.value.replace(/\D/g, '');
+          setForm(prev => ({ ...prev, phone: value }));
+        }}
+        maxLength={10}
+      />
+      <input
+        name="email"
+        placeholder="Email"
+        className="input w-full"
+        onChange={handleChange}
+        required
+        type="email"
+      />
       <select name="employee_id" required className="input w-full" onChange={handleChange} value={form.employee_id}>
         <option value="">Select Barber</option>
         {employees.map((e: any) => (
@@ -235,7 +275,7 @@ export default function BookingForm() {
               type="number"
               name={`service_qty_${s.id}`}
               min={0}
-              max={99}
+              max={5}
               value={form.service_quantities[s.id] || 0}
               onChange={handleChange}
               className="w-16 border rounded px-2 py-1"
@@ -260,14 +300,22 @@ export default function BookingForm() {
       </select>
       {durationExceeded ? (
         <div className="text-red-600 text-sm mt-1">Max time per booking is 1 hour. Please reduce the number or duration of services.</div>
-      ) : form.employee_id && form.date && Object.values(form.service_quantities).reduce((a, b) => a + b, 0) > 0 && filteredAvailableTimes.length === 0 && (
-        <div className="text-red-600 text-sm mt-1">No available times for this selection.</div>
+      ) : Object.values(form.service_quantities).reduce((a, b) => a + b, 0) === 0 ? (
+        <div className="text-red-600 text-sm mt-1">Please select at least one service.</div>
+      ) : (
+        form.employee_id && form.date && Object.values(form.service_quantities).reduce((a, b) => a + b, 0) > 0 && filteredAvailableTimes.length === 0 && availableTimes.length > 0 && (
+          <div className="text-red-600 text-sm mt-1">No available times for this selection.</div>
+        )
       )}
-      {/* Debug button for schedule fetch */}
-      <button type="button" onClick={debugFetchSchedule} className="btn btn-secondary w-full mb-2">
-        Debug Schedule Fetch
+      {error === 'Barber is off on this day.' && (
+        <div className="text-red-600 text-sm mt-1">Barber is off on this day.</div>
+      )}
+      <button
+        type="submit"
+        className="w-full bg-blue-600 text-white rounded px-4 py-2 font-semibold hover:bg-blue-700 transition-colors"
+      >
+        Book Appointment
       </button>
-      <button type="submit" className="btn btn-primary w-full">Book Appointment</button>
     </form>
   );
 }

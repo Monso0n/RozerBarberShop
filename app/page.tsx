@@ -14,6 +14,21 @@ import BookingForm from '../components/BookingForm'
 import { supabase } from '../lib/supabaseClient'
 import React, { useEffect, useState } from 'react';
 
+type Barber = {
+  id: string;
+  name: string;
+  phone: string;
+  photo_url?: string;
+};
+
+type Service = {
+  id: string;
+  name: string;
+  price: number;
+  duration_minutes: number;
+  description: string;
+};
+
 export default function RozersBarberStation() {
   // Add scroll handler
   const scrollToContact = () => {
@@ -166,85 +181,7 @@ export default function RozersBarberStation() {
               Professional barbering services tailored to your style and preferences
             </p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card className="hover:shadow-lg transition-shadow overflow-hidden">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Scissors className="h-5 w-5 mr-2 text-red-600" />
-                  Classic Haircut
-                </CardTitle>
-                <CardDescription>$25</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p>Traditional scissor cut with attention to detail and personal style preferences.</p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-shadow overflow-hidden">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Scissors className="h-5 w-5 mr-2 text-red-600" />
-                  Beard Trim & Shape
-                </CardTitle>
-                <CardDescription>$20</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p>Professional beard trimming and shaping to complement your facial structure.</p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-shadow overflow-hidden">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Scissors className="h-5 w-5 mr-2 text-red-600" />
-                  Hot Towel Shave
-                </CardTitle>
-                <CardDescription>$30</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p>Luxurious traditional straight razor shave with hot towel treatment.</p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-shadow overflow-hidden">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Scissors className="h-5 w-5 mr-2 text-red-600" />
-                  Fade Cut
-                </CardTitle>
-                <CardDescription>$28</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p>Modern fade cuts including high, mid, and low fades with precision blending.</p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-shadow overflow-hidden">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Scissors className="h-5 w-5 mr-2 text-red-600" />
-                  Kids Cut
-                </CardTitle>
-                <CardDescription>$18</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p>Patient and gentle haircuts for children in a comfortable environment.</p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-shadow overflow-hidden">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Scissors className="h-5 w-5 mr-2 text-red-600" />
-                  Full Service
-                </CardTitle>
-                <CardDescription>$45</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p>Complete grooming package including cut, wash, beard trim, and styling.</p>
-              </CardContent>
-            </Card>
-          </div>
+          <ServicesList />
         </div>
       </section>
 
@@ -296,75 +233,7 @@ export default function RozersBarberStation() {
               Our skilled and experienced barbers are dedicated to providing you with the best grooming experience
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <Card className="text-center hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="relative w-32 h-32 mx-auto mb-4">
-                  <Image
-                    src="/images/barber-placeholder.jpg"
-                    alt="Team Member"
-                    fill
-                    className="object-cover rounded-full"
-                  />
-                </div>
-                <h3 className="text-xl font-bold mb-2">Rozer</h3>
-                <p className="text-red-600 font-semibold mb-2">Master Barber & Owner</p>
-                <p className="text-gray-600 text-sm">
-                  15+ years of experience specializing in classic cuts and modern styles
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="relative w-32 h-32 mx-auto mb-4">
-                  <Image
-                    src="/images/barber-placeholder.jpg"
-                    alt="Team Member"
-                    fill
-                    className="object-cover rounded-full"
-                  />
-                </div>
-                <h3 className="text-xl font-bold mb-2">Sunny</h3>
-                <p className="text-red-600 font-semibold mb-2">Senior Barber</p>
-                <p className="text-gray-600 text-sm">
-                  Expert in fade cuts and beard styling with 8+ years of experience
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="relative w-32 h-32 mx-auto mb-4">
-                  <Image
-                    src="/images/barber-placeholder.jpg"
-                    alt="Team Member"
-                    fill
-                    className="object-cover rounded-full"
-                  />
-                </div>
-                <h3 className="text-xl font-bold mb-2">Navi</h3>
-                <p className="text-red-600 font-semibold mb-2">Professional Barber</p>
-                <p className="text-gray-600 text-sm">Skilled in traditional techniques and contemporary styling</p>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="relative w-32 h-32 mx-auto mb-4">
-                  <Image
-                    src="/images/barber-placeholder.jpg"
-                    alt="Team Member"
-                    fill
-                    className="object-cover rounded-full"
-                  />
-                </div>
-                <h3 className="text-xl font-bold mb-2">Prabh</h3>
-                <p className="text-red-600 font-semibold mb-2">Professional Barber</p>
-                <p className="text-gray-600 text-sm">Passionate about precision cuts and customer satisfaction</p>
-              </CardContent>
-            </Card>
-          </div>
+          <BarbersList />
         </div>
       </section>
 
@@ -386,34 +255,9 @@ export default function RozersBarberStation() {
             <p className="text-gray-600">Get a fresh cut, shave, or beard trim at Rozer's Barber Station!</p>
           </div>
           <div className="grid lg:grid-cols-2 gap-12">
-            {/* Google Maps */}
-            <div className="h-96 rounded-lg overflow-hidden shadow-lg">
-              <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2879.8!2d-79.7624!3d43.7315!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x882b15eaa5d05abf%3A0x352d5b8f5c5b5c5b!2s50%20Sunny%20Meadow%20Blvd%2C%20Brampton%2C%20ON!5e0!3m2!1sen!2sca!4v1234567890"
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="Rozer's Barber Station Location"
-              ></iframe>
-            </div>
-
-            {/* Contact Info & Booking Form */}
-            <div>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Book Your Appointment</CardTitle>
-                  <CardDescription>Schedule your visit today</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <BookingForm />
-                </CardContent>
-              </Card>
-
-              {/* Contact Information */}
-              <div className="mt-8 space-y-4">
+            {/* Left: Contact Info above Map */}
+            <div className="flex flex-col h-full">
+              <div className="mb-8">
                 <div className="flex justify-center mb-6">
                   <Image
                     src="/images/rozers-logo.jpg"
@@ -444,6 +288,30 @@ export default function RozersBarberStation() {
                   </div>
                 </div>
               </div>
+              <div className="h-96 rounded-lg overflow-hidden shadow-lg flex-1">
+                <iframe
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2879.8!2d-79.7624!3d43.7315!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x882b15eaa5d05abf%3A0x352d5b8f5c5b5c5b!2s50%20Sunny%20Meadow%20Blvd%2C%20Brampton%2C%20ON!5e0!3m2!1sen!2sca!4v1234567890"
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="Rozer's Barber Station Location"
+                ></iframe>
+              </div>
+            </div>
+            {/* Right: Booking Form */}
+            <div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Book Your Appointment</CardTitle>
+                  <CardDescription>Schedule your visit today</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <BookingForm />
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
@@ -465,7 +333,7 @@ export default function RozersBarberStation() {
             </div>
             <div className="text-center md:text-right">
               <p>&copy; 2024 Rozer's Barber Station. All rights reserved.</p>
-              <p className="text-sm text-gray-400 mt-1">Professional barbering services since 2009</p>
+              <p className="text-sm text-gray-400 mt-1">Professional barbering services since 2016</p>
             </div>
           </div>
         </div>
@@ -509,6 +377,68 @@ function GoogleReviews() {
           </Card>
         ))}
       </div>
+    </div>
+  );
+}
+
+function ServicesList() {
+  const [services, setServices] = useState<Service[]>([]);
+  useEffect(() => {
+    supabase
+      .from('services')
+      .select('*')
+      .then(({ data }) => setServices(data || []));
+  }, []);
+  return (
+    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {services.map(service => (
+        <Card key={service.id} className="hover:shadow-lg transition-shadow overflow-hidden">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Scissors className="h-5 w-5 mr-2 text-red-600" />
+              {service.name}
+            </CardTitle>
+            <CardDescription>
+              ${service.price} &bull; {service.duration_minutes} min
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p>{service.description}</p>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function BarbersList() {
+  const [barbers, setBarbers] = React.useState<Barber[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  React.useEffect(() => {
+    supabase.from('employees').select('*').then(({ data }) => {
+      setBarbers(data || []);
+      setLoading(false);
+    });
+  }, []);
+  if (loading) return <div className="text-center">Loading barbers...</div>;
+  if (!barbers.length) return <div className="text-center text-gray-500">No barbers found.</div>;
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+      {barbers.map((barber) => (
+        <Card key={barber.id} className="text-center hover:shadow-lg transition-shadow">
+          <CardContent className="p-6">
+            <div className="relative w-32 h-32 mx-auto mb-4">
+              <Image
+                src={barber.photo_url || '/images/barber-placeholder.jpg'}
+                alt={barber.name}
+                fill
+                className="object-cover rounded-full"
+              />
+            </div>
+            <h3 className="text-xl font-bold mb-2">{barber.name}</h3>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }

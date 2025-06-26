@@ -29,33 +29,57 @@ export async function POST(req: Request) {
       return new Response(resp.toString(), { headers: { 'Content-Type': 'text/xml' } });
     }
 
-    // Get today's day of week (1=Monday, 7=Sunday)
+    // Get today's date in YYYY-MM-DD
     const today = new Date();
-    let dayOfWeek = today.getDay();
-    dayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
 
-    // Fetch today's schedule
-    const { data: schedule, error: scheduleError } = await supabase
-      .from('employee_schedule')
-      .select('start_time, end_time')
+    // Fetch today's bookings for this barber
+    const { data: bookings, error: bookingsError } = await supabase
+      .from('bookings')
+      .select('start_time, customers(name)')
       .eq('employee_id', barber.id)
-      .eq('day_of_week', dayOfWeek)
-      .single();
-    console.log('SCHEDULE command - schedule lookup:', { schedule, scheduleError });
+      .eq('date', todayStr)
+      .in('status', ['confirmed', 'reminder_sent'])
+      .order('start_time', { ascending: true });
+    console.log('SCHEDULE command - today bookings:', { bookings, bookingsError });
 
-    if (!schedule) {
-      resp.message(`Hi ${barber.name}, you are off today!`);
-      console.log('SCHEDULE command - barber is off today:', barber.name);
-    } else {
-      resp.message(`Hi ${barber.name}, your schedule today is ${schedule.start_time} to ${schedule.end_time}.`);
-      console.log('SCHEDULE command - barber schedule:', schedule);
+    if (bookingsError) {
+      console.error('SCHEDULE command - error fetching bookings:', bookingsError);
+      resp.message('An error occurred while fetching your bookings. Please try again later.');
+      return new Response(resp.toString(), { headers: { 'Content-Type': 'text/xml' } });
     }
 
+    let message = '';
+    try {
+      if (bookings && bookings.length > 0) {
+        message = `Today's bookings:\n` +
+          bookings.map(b => {
+            let customerName = 'Unknown';
+            if (b.customers) {
+              if (Array.isArray(b.customers)) {
+                customerName = (b.customers as any)[0]?.name || 'Unknown';
+              } else if (typeof b.customers === 'object') {
+                customerName = (b.customers as any).name || 'Unknown';
+              }
+            }
+            return `• ${b.start_time} - ${customerName}`;
+          }).join('\n');
+      } else {
+        message = 'You have no bookings today.';
+      }
+    } catch (err) {
+      console.error('SCHEDULE command - error formatting bookings:', err);
+      message = 'An error occurred while formatting your bookings.';
+    }
+    resp.message(message);
     return new Response(resp.toString(), { headers: { 'Content-Type': 'text/xml' } });
   }
 
   // Handle CANCEL command for customers
-  if (body === 'CANCEL') {
+  if (body === 'CANCELBOOKING') {
     // Find the customer by phone number
     const { data: customer, error: customerError } = await supabase
       .from('customers')
@@ -79,18 +103,31 @@ export async function POST(req: Request) {
       .eq('customer_id', customer.id)
       .in('status', ['confirmed', 'reminder_sent'])
       .order('date', { ascending: true });
-    console.log('CANCEL command - bookings lookup:', { bookings, bookingsError });
+    console.log('CANCELBOOKING command - bookings lookup:', { bookings, bookingsError });
 
+    const nowTime = now.getTime();
     const toCancel = (bookings || []).filter(b => {
       const bookingDate = new Date(`${b.date}T${b.start_time}`);
-      return (bookingDate.getTime() - now.getTime()) / 3600000 > 1;
+      return (bookingDate.getTime() - nowTime) / 3600000 > 1;
     });
-    console.log('CANCEL command - bookings to cancel:', toCancel);
+    const tooLate = (bookings || []).filter(b => {
+      const bookingDate = new Date(`${b.date}T${b.start_time}`);
+      return (bookingDate.getTime() - nowTime) / 3600000 <= 1 && (bookingDate.getTime() - nowTime) > 0;
+    });
+    console.log('CANCELBOOKING command - bookings to cancel:', toCancel);
+    console.log('CANCELBOOKING command - bookings too close to cancel:', tooLate);
 
-    if (toCancel.length === 0) {
+    if (toCancel.length === 0 && tooLate.length === 0) {
       const resp = new MessagingResponse();
       resp.message("You have no upcoming bookings that can be cancelled.");
-      console.log('CANCEL command - no cancellable bookings for customer:', customer.id);
+      console.log('CANCELBOOKING command - no cancellable bookings for customer:', customer.id);
+      return new Response(resp.toString(), { headers: { 'Content-Type': 'text/xml' } });
+    }
+
+    if (tooLate.length > 0) {
+      const resp = new MessagingResponse();
+      resp.message('❗This appointment is too close to cancel. Please call us to make changes at (289) 952-7018');
+      console.log('CANCELBOOKING command - booking(s) too close to cancel for customer:', customer.id);
       return new Response(resp.toString(), { headers: { 'Content-Type': 'text/xml' } });
     }
 
@@ -98,9 +135,9 @@ export async function POST(req: Request) {
     const ids = toCancel.map(b => b.id);
     const { error: cancelError } = await supabase.from('bookings').update({ status: 'cancelled' }).in('id', ids);
     if (cancelError) {
-      console.error('CANCEL command - error cancelling bookings:', cancelError);
+      console.error('CANCELBOOKING command - error cancelling bookings:', cancelError);
     } else {
-      console.log('CANCEL command - cancelled bookings:', ids);
+      console.log('CANCELBOOKING command - cancelled bookings:', ids);
     }
 
     // Build the reply

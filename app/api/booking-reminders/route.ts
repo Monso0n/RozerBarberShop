@@ -47,7 +47,7 @@ export async function GET() {
           const result = await twilioClient.messages.create({
             to: customer.phone,
             from: process.env.TWILIO_PHONE_NUMBER!,
-            body: `Hi ${customer.name}, your booking at Rozer's Barber Station is in 1 hour!`
+            body: `Hi ${customer.name}, your booking at Rozer's Barber Station is coming right up, see you soon!`
           });
           console.log('Sent reminder SMS to customer:', result);
         } catch (err) {

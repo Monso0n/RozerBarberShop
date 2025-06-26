@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
     const client = twilio(accountSid, authToken);
 
     // Compose messages
-    const customerMsg = `Hi ${customerName}, your booking at Rozer's Barber Station is confirmed for ${date} at ${startTime} with ${barberName}. See you soon!`;
+    const customerMsg = `Hi ${customerName}, your booking at Rozer's Barber Station is confirmed for ${date} at ${startTime} with ${barberName}.\n\nReply with CANCELBOOKING to cancel if your appointment is more than 1 hour away.`;
     const barberMsg = `New booking: ${customerName}\nServices: ${services || 'N/A'}\nTime: ${date} ${startTime} - ${endTime || ''}`;
 
     // Send SMS

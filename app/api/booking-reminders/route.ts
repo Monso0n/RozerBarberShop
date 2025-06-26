@@ -12,12 +12,19 @@ function combineDateTimeToronto(date: string, time: string) {
   return new Date(Date.UTC(year, month - 1, day, hour + 4, minute, second || 0));
 }
 
+// Helper to get current time in Toronto (fixed UTC-4 offset)
+function getNowToronto() {
+  const now = new Date();
+  // Subtract 4 hours to get Toronto local time if server is in UTC
+  return new Date(now.getTime() - 4 * 60 * 60 * 1000);
+}
+
 export async function GET() {
   const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
   const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!);
 
-  // Use UTC for all calculations
-  const now = new Date();
+  // Use Toronto local time for all calculations
+  const now = getNowToronto();
 
   // 1. Find bookings for reminders (1 hour before start)
   const { data: reminderBookings, error: reminderBookingsError } = await supabase
@@ -132,7 +139,7 @@ export async function GET() {
           const result = await twilioClient.messages.create({
             to: customer.phone,
             from: process.env.TWILIO_PHONE_NUMBER!,
-            body: `Thank you for choosing Rozer's Barber Station, ${customer.name}! We hope you enjoyed your visit. Please leave us a review: [YOUR_GOOGLE_REVIEW_LINK]`
+            body: `Thank you for choosing Rozer's Barber Station, ${customer.name}! We hope you enjoyed your visit. Please leave us a review: https://search.google.com/local/writereview?placeid=ChIJmUtNDoYTK4gRybdGhIMqCQo`
           });
           console.log('Sent follow-up SMS to customer:', result);
           // Update status

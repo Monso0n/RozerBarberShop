@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Star } from "lucide-react";
+import BarbersList from './BarbersList';
 
 type GoogleReview = { author_name: string; time: number; text: string; rating: number; };
 
@@ -27,12 +28,28 @@ export default function BookingForm() {
   const [error, setError] = useState('');
   const [reviews, setReviews] = useState<GoogleReview[]>([]);
   const [durationExceeded, setDurationExceeded] = useState(false);
+  const [workingDays, setWorkingDays] = useState<number[]>([]);
 
   // Fetch employees and services
   useEffect(() => {
     supabase.from('employees').select('*').then(({ data }) => setEmployees(data || []));
     supabase.from('services').select('*').then(({ data }) => setServices(data || []));
   }, []);
+
+  // Fetch working days when employee_id changes
+  useEffect(() => {
+    if (!form.employee_id) {
+      setWorkingDays([]);
+      return;
+    }
+    supabase
+      .from('employee_schedule')
+      .select('day_of_week')
+      .eq('employee_id', form.employee_id)
+      .then(({ data }) => {
+        setWorkingDays((data || []).map((s: any) => s.day_of_week));
+      });
+  }, [form.employee_id]);
 
   // Update available times when barber, date, or services change
   useEffect(() => {
@@ -107,8 +124,8 @@ export default function BookingForm() {
         });
         if (!conflict) slots.push(start);
 
-        // Increment by 15 min
-        m += 15;
+        // Increment by 10 min
+        m += 10;
         if (m >= 60) {
           h += 1;
           m -= 60;
@@ -135,6 +152,14 @@ export default function BookingForm() {
 
   const handleChange = (e: any) => {
     const { name, value, type, checked } = e.target;
+    if (name === 'date') {
+      const dayOfWeek = new Date(value).getDay() || 7; // 1=Mon, 7=Sun
+      if (form.employee_id && !workingDays.includes(dayOfWeek)) {
+        setError('Barber is not working on this day.');
+        setForm(prev => ({ ...prev, date: todayStr }));
+        return;
+      }
+    }
     if (name.startsWith('service_qty_')) {
       const serviceId = name.replace('service_qty_', '');
       const qty = Math.max(0, Math.min(99, parseInt(value, 10) || 0));
@@ -233,9 +258,27 @@ export default function BookingForm() {
     alert(JSON.stringify(schedule, null, 2));
   };
 
+  // Helper to get next 14 working days for the selected barber
+  function getNextWorkingDays(workingDays: number[], count = 14) {
+    const days: { value: string; label: string }[] = [];
+    let d = new Date();
+    for (let i = 0; days.length < count && i < 30; i++) { // up to 30 days lookahead
+      const dayOfWeek = d.getDay() === 0 ? 7 : d.getDay(); // 1=Mon, 7=Sun
+      if (workingDays.includes(dayOfWeek)) {
+        const value = d.toISOString().slice(0, 10);
+        const label = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+        days.push({ value, label });
+      }
+      d.setDate(d.getDate() + 1);
+    }
+    return days;
+  }
+
+  const workingDayOptions = getNextWorkingDays(workingDays, 14);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4 max-w-md mx-auto p-4 bg-white rounded shadow">
-      <h2 className="text-xl font-bold mb-2">Book an Appointment</h2>
+      <h2 className="text-xl font-bold mb-2">Select your Barber, Service, and Time</h2>
       {error && <div className="text-red-600">{error}</div>}
       <input name="name" placeholder="Name" required className="input w-full" onChange={handleChange} />
       <input
@@ -283,15 +326,18 @@ export default function BookingForm() {
           </div>
         ))}
       </div>
-      <input
-        type="date"
+      <select
         name="date"
         required
         className="input w-full"
         onChange={handleChange}
         value={form.date}
-        min={todayStr}
-      />
+      >
+        <option value="">Select Date</option>
+        {workingDayOptions.map(opt => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
       <select name="time" required className="input w-full" onChange={handleChange} value={form.time}>
         <option value="">Select Time</option>
         {filteredAvailableTimes.map(t => (

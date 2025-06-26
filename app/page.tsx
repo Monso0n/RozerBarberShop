@@ -13,21 +13,7 @@ import Link from "next/link"
 import BookingForm from '../components/BookingForm'
 import { supabase } from '../lib/supabaseClient'
 import React, { useEffect, useState } from 'react';
-
-type Barber = {
-  id: string;
-  name: string;
-  phone: string;
-  photo_url?: string;
-};
-
-type Service = {
-  id: string;
-  name: string;
-  price: number;
-  duration_minutes: number;
-  description: string;
-};
+import BarbersList from '../components/BarbersList';
 
 export default function RozersBarberStation() {
   // Add scroll handler
@@ -181,7 +167,85 @@ export default function RozersBarberStation() {
               Professional barbering services tailored to your style and preferences
             </p>
           </div>
-          <ServicesList />
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <Card className="hover:shadow-lg transition-shadow overflow-hidden">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Scissors className="h-5 w-5 mr-2 text-red-600" />
+                  Classic Haircut
+                </CardTitle>
+                <CardDescription>$25</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p>Traditional scissor cut with attention to detail and personal style preferences.</p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow overflow-hidden">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Scissors className="h-5 w-5 mr-2 text-red-600" />
+                  Beard Trim & Shape
+                </CardTitle>
+                <CardDescription>$20</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p>Professional beard trimming and shaping to complement your facial structure.</p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow overflow-hidden">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Scissors className="h-5 w-5 mr-2 text-red-600" />
+                  Hot Towel Shave
+                </CardTitle>
+                <CardDescription>$30</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p>Luxurious traditional straight razor shave with hot towel treatment.</p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow overflow-hidden">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Scissors className="h-5 w-5 mr-2 text-red-600" />
+                  Fade Cut
+                </CardTitle>
+                <CardDescription>$28</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p>Modern fade cuts including high, mid, and low fades with precision blending.</p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow overflow-hidden">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Scissors className="h-5 w-5 mr-2 text-red-600" />
+                  Kids Cut
+                </CardTitle>
+                <CardDescription>$18</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p>Patient and gentle haircuts for children in a comfortable environment.</p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow overflow-hidden">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Scissors className="h-5 w-5 mr-2 text-red-600" />
+                  Full Service
+                </CardTitle>
+                <CardDescription>$45</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p>Complete grooming package including cut, wash, beard trim, and styling.</p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </section>
 
@@ -377,68 +441,6 @@ function GoogleReviews() {
           </Card>
         ))}
       </div>
-    </div>
-  );
-}
-
-function ServicesList() {
-  const [services, setServices] = useState<Service[]>([]);
-  useEffect(() => {
-    supabase
-      .from('services')
-      .select('*')
-      .then(({ data }) => setServices(data || []));
-  }, []);
-  return (
-    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-      {services.map(service => (
-        <Card key={service.id} className="hover:shadow-lg transition-shadow overflow-hidden">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Scissors className="h-5 w-5 mr-2 text-red-600" />
-              {service.name}
-            </CardTitle>
-            <CardDescription>
-              ${service.price} &bull; {service.duration_minutes} min
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p>{service.description}</p>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-function BarbersList() {
-  const [barbers, setBarbers] = React.useState<Barber[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  React.useEffect(() => {
-    supabase.from('employees').select('*').then(({ data }) => {
-      setBarbers(data || []);
-      setLoading(false);
-    });
-  }, []);
-  if (loading) return <div className="text-center">Loading barbers...</div>;
-  if (!barbers.length) return <div className="text-center text-gray-500">No barbers found.</div>;
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-      {barbers.map((barber) => (
-        <Card key={barber.id} className="text-center hover:shadow-lg transition-shadow">
-          <CardContent className="p-6">
-            <div className="relative w-32 h-32 mx-auto mb-4">
-              <Image
-                src={barber.photo_url || '/images/barber-placeholder.jpg'}
-                alt={barber.name}
-                fill
-                className="object-cover rounded-full"
-              />
-            </div>
-            <h3 className="text-xl font-bold mb-2">{barber.name}</h3>
-          </CardContent>
-        </Card>
-      ))}
     </div>
   );
 }

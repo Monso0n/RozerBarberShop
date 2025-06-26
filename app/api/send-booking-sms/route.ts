@@ -84,11 +84,15 @@ export async function POST(req: NextRequest) {
     const barberMsg = `New booking: ${customerName}\nServices: ${services || 'N/A'}\nTime: ${date} ${startTime} - ${endTime || ''}`;
 
     // Send SMS
-    await client.messages.create({ body: customerMsg, from: twilioNumber, to: customerPhone });
+    console.log('About to send SMS to customer:', customer.phone);
+    const result = await client.messages.create({ body: customerMsg, from: twilioNumber, to: customerPhone });
+    console.log('Twilio customer SMS result:', result);
 
     // (Optional) Send SMS to barber
     if (barber?.phone) {
-      await client.messages.create({ body: barberMsg, from: twilioNumber, to: barberPhone });
+      console.log('About to send SMS to barber:', barber.phone);
+      const resultBarber = await client.messages.create({ body: barberMsg, from: twilioNumber, to: barberPhone });
+      console.log('Twilio barber SMS result:', resultBarber);
     }
 
     return NextResponse.json({ ok: true });

@@ -1,0 +1,46 @@
+import { NextRequest, NextResponse } from 'next/server';
+import twilio from 'twilio';
+
+export const config = { runtime: 'edge' };
+
+const accountSid = process.env.TWILIO_ACCOUNT_SID!;
+const authToken = process.env.TWILIO_AUTH_TOKEN!;
+const twilioNumber = process.env.TWILIO_PHONE_NUMBER!;
+
+export default async function handler(req: NextRequest) {
+  if (req.method !== 'POST') {
+    return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
+  }
+
+  try {
+    const body = await req.json();
+    // Supabase webhook sends the new row as 'record'
+    const booking = body.record || body;
+
+    // Extract phone numbers and details
+    const customerPhone = booking.customer_phone || booking.customer?.phone;
+    const barberPhone = booking.barber_phone || booking.barber?.phone;
+    const customerName = booking.customer_name || booking.customer?.name || 'Customer';
+    const barberName = booking.barber_name || booking.barber?.name || 'Barber';
+    const date = booking.date;
+    const time = booking.start_time;
+
+    if (!customerPhone || !barberPhone || !date || !time) {
+      return NextResponse.json({ error: 'Missing required booking info' }, { status: 400 });
+    }
+
+    const client = twilio(accountSid, authToken);
+
+    // Compose messages
+    const customerMsg = `Hi ${customerName}, your booking at Rozer's Barber Station is confirmed for ${date} at ${time}. See you soon!`;
+    const barberMsg = `New booking: ${customerName} on ${date} at ${time}.`;
+
+    // Send SMS
+    await client.messages.create({ body: customerMsg, from: twilioNumber, to: customerPhone });
+    await client.messages.create({ body: barberMsg, from: twilioNumber, to: barberPhone });
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Failed to send SMS' }, { status: 500 });
+  }
+} 

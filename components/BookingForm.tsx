@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Star } from "lucide-react";
-import BarbersList from './BarbersList';
 
 type GoogleReview = { author_name: string; time: number; text: string; rating: number; };
 

@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
 
-export const config = { runtime: 'edge' };
+// export const config = { runtime: 'edge' };
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID!;
 const authToken = process.env.TWILIO_AUTH_TOKEN!;
 const twilioNumber = process.env.TWILIO_PHONE_NUMBER!;
 
-export default async function handler(req: NextRequest) {
+export async function POST(req: NextRequest) {
   if (req.method !== 'POST') {
     return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
   }

@@ -105,14 +105,26 @@ export async function POST(req: Request) {
       .order('date', { ascending: true });
     console.log('CANCELBOOKING command - bookings lookup:', { bookings, bookingsError });
 
-    const nowTime = now.getTime();
-    const toCancel = (bookings || []).filter(b => {
+    // Only consider bookings in the future
+    const futureBookings = (bookings || []).filter((b: any) => {
       const bookingDate = new Date(`${b.date}T${b.start_time}`);
-      return (bookingDate.getTime() - nowTime) / 3600000 > 1;
+      return bookingDate.getTime() > now.getTime();
     });
-    const tooLate = (bookings || []).filter(b => {
+
+    if (futureBookings.length === 0) {
+      const resp = new MessagingResponse();
+      resp.message("You have no upcoming bookings that can be cancelled.");
+      console.log('CANCELBOOKING command - no future bookings for customer:', customer.id);
+      return new Response(resp.toString(), { headers: { 'Content-Type': 'text/xml' } });
+    }
+
+    const toCancel = futureBookings.filter((b: any) => {
       const bookingDate = new Date(`${b.date}T${b.start_time}`);
-      return (bookingDate.getTime() - nowTime) / 3600000 <= 1 && (bookingDate.getTime() - nowTime) > 0;
+      return (bookingDate.getTime() - now.getTime()) / 3600000 > 1;
+    });
+    const tooLate = futureBookings.filter((b: any) => {
+      const bookingDate = new Date(`${b.date}T${b.start_time}`);
+      return (bookingDate.getTime() - now.getTime()) / 3600000 <= 1 && (bookingDate.getTime() - now.getTime()) > 0;
     });
     console.log('CANCELBOOKING command - bookings to cancel:', toCancel);
     console.log('CANCELBOOKING command - bookings too close to cancel:', tooLate);

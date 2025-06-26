@@ -1,3 +1,4 @@
+import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
 
@@ -18,6 +19,30 @@ export async function POST(req: NextRequest) {
 
     // Supabase webhook sends the new row as 'record'
     const booking = body.record || body;
+
+    // Connect to Supabase (use service role key for server-side)
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // Fetch customer info
+    const { data: customer } = await supabase
+      .from('customers')
+      .select('name, phone')
+      .eq('id', booking.customer_id)
+      .single();
+
+    // Fetch barber info (if you want to message the barber too)
+    const { data: barber } = await supabase
+      .from('employees')
+      .select('name, phone')
+      .eq('id', booking.employee_id)
+      .single();
+
+    if (!customer?.phone) {
+      return NextResponse.json({ error: 'Customer phone not found' }, { status: 400 });
+    }
 
     // Extract phone numbers and details
     const customerPhone = booking.customer_phone || booking.customer?.phone;
@@ -49,7 +74,11 @@ export async function POST(req: NextRequest) {
 
     // Send SMS
     await client.messages.create({ body: customerMsg, from: twilioNumber, to: customerPhone });
-    await client.messages.create({ body: barberMsg, from: twilioNumber, to: barberPhone });
+
+    // (Optional) Send SMS to barber
+    if (barber?.phone) {
+      await client.messages.create({ body: barberMsg, from: twilioNumber, to: barberPhone });
+    }
 
     return NextResponse.json({ success: true });
   } catch (err: any) {

@@ -23,17 +23,27 @@ export default async function handler(req: NextRequest) {
     const customerName = booking.customer_name || booking.customer?.name || 'Customer';
     const barberName = booking.barber_name || booking.barber?.name || 'Barber';
     const date = booking.date;
-    const time = booking.start_time;
+    const startTime = booking.start_time;
+    const endTime = booking.end_time;
+    // Services: try to get a string list
+    let services = '';
+    if (booking.services && Array.isArray(booking.services)) {
+      services = booking.services.map((s: any) => s.name).join(', ');
+    } else if (booking.service_names) {
+      services = booking.service_names;
+    } else if (booking.services) {
+      services = booking.services;
+    }
 
-    if (!customerPhone || !barberPhone || !date || !time) {
+    if (!customerPhone || !barberPhone || !date || !startTime) {
       return NextResponse.json({ error: 'Missing required booking info' }, { status: 400 });
     }
 
     const client = twilio(accountSid, authToken);
 
     // Compose messages
-    const customerMsg = `Hi ${customerName}, your booking at Rozer's Barber Station is confirmed for ${date} at ${time}. See you soon!`;
-    const barberMsg = `New booking: ${customerName} on ${date} at ${time}.`;
+    const customerMsg = `Hi ${customerName}, your booking at Rozer's Barber Station is confirmed for ${date} at ${startTime} with ${barberName}. See you soon!`;
+    const barberMsg = `New booking: ${customerName}\nServices: ${services || 'N/A'}\nTime: ${date} ${startTime} - ${endTime || ''}`;
 
     // Send SMS
     await client.messages.create({ body: customerMsg, from: twilioNumber, to: customerPhone });

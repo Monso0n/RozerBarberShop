@@ -24,7 +24,7 @@ export async function GET() {
     const start = combineDateTime(booking.date, booking.start_time);
     const diffMinutes = (start.getTime() - now.getTime()) / 60000;
     console.log('Checking booking for reminder:', booking, 'Minutes until start:', diffMinutes);
-    if (diffMinutes > 59 && diffMinutes < 61) {
+    if (diffMinutes > 0 && diffMinutes < 61) {
       // Fetch customer info
       const { data: customer, error: customerError } = await supabase
         .from('customers')

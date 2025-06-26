@@ -117,14 +117,7 @@ export async function POST(req: Request) {
     console.log('CANCELBOOKING command - bookings to cancel:', toCancel);
     console.log('CANCELBOOKING command - bookings too close to cancel:', tooLate);
 
-    if (toCancel.length === 0 && tooLate.length === 0) {
-      const resp = new MessagingResponse();
-      resp.message("You have no upcoming bookings that can be cancelled.");
-      console.log('CANCELBOOKING command - no cancellable bookings for customer:', customer.id);
-      return new Response(resp.toString(), { headers: { 'Content-Type': 'text/xml' } });
-    }
-
-    if (tooLate.length > 0) {
+    if (toCancel.length === 0 && tooLate.length > 0) {
       const resp = new MessagingResponse();
       resp.message('❗This appointment is too close to cancel. Please call us to make changes at (289) 952-7018');
       console.log('CANCELBOOKING command - booking(s) too close to cancel for customer:', customer.id);

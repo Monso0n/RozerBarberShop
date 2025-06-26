@@ -63,7 +63,7 @@ export async function GET() {
         await twilioClient.messages.create({
           to: customer.phone,
           from: process.env.TWILIO_PHONE_NUMBER!,
-          body: `Thank you for choosing Rozer's Barber Station, ${customer.name}! We hope you enjoyed your visit. Please leave us a review: [YOUR_GOOGLE_REVIEW_LINK]`
+          body: `Thank you for choosing Rozer's Barber Station, ${customer.name}! We hope you enjoyed your visit. Please leave us a review on Google Maps to support us!`
         });
         // Update status
         await supabase.from('bookings').update({ status: 'completed' }).eq('id', booking.id);
